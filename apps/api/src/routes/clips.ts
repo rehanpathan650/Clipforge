@@ -63,7 +63,7 @@ const renderSchema = z.object({
 
 clipsRouter.post("/:id/render", limiter, async (req, res) => {
   const body = parse(renderSchema, req.body);
-  const clip = await findOwned(req.params.id, req.userId);
+    const clip = await findOwned(String(req.params.id), req.userId);
   if (clip.status === "RENDERING") throw new HttpError(409, "This clip is already being re-rendered");
   if (!sourceAvailable(clip.project)) {
     throw new HttpError(410, `The original video is removed ${env.SOURCE_RETENTION_DAYS} days after upload, so this clip can no longer be edited.`);
