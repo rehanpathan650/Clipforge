@@ -1,0 +1,72 @@
+# Single-server production setup. Postgres and object storage are expected to be managed services
+# (e.g. Neon/RDS and Cloudflare R2). Run from the repo root:
+#   docker compose -f deploy/docker-compose.prod.yml --env-file .env.production up -d --build
+name: clipforge
+
+x-app-env: &app-env
+  env_file: ../.env.production
+  restart: unless-stopped
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web, api]
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN}
+    restart: unless-stopped
+
+  migrate:
+    build: { context: .., dockerfile: Dockerfile, target: api }
+    env_file: ../.env.production
+    command: ["npm", "run", "migrate:deploy", "-w", "@clipforge/core"]
+    restart: "no"
+    depends_on: [redis]
+
+  api:
+    <<: *app-env
+    build: { context: .., dockerfile: Dockerfile, target: api }
+    environment: { TRUST_PROXY: "1" }
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/readyz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    <<: *app-env
+    build: { context: .., dockerfile: Dockerfile, target: worker }
+    # Scale throughput by raising replicas (rendering is CPU bound: roughly one replica per 2-4 vCPU).
+    deploy: { replicas: 1 }
+    # Let an in-flight render finish before the container is killed on deploy.
+    stop_grace_period: 10m
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_started }
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: [redisdata:/data]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  redisdata:

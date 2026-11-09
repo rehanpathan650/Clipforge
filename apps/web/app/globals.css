@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+  body {
+    @apply bg-mist font-sans text-navy antialiased;
+  }
+  ::selection {
+    @apply bg-caption text-navy;
+  }
+  :focus-visible {
+    outline: 3px solid #ffd60a;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[0.95rem] font-semibold transition-[transform,background-color,opacity] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-yellow {
+    @apply btn bg-caption text-navy hover:bg-[#ffe45c];
+  }
+  .btn-blue {
+    @apply btn bg-cobalt text-white hover:bg-cobalt-deep;
+  }
+  .btn-quiet {
+    @apply btn bg-navy/5 text-navy hover:bg-navy/10;
+  }
+  .field {
+    @apply w-full rounded-xl border border-mist-line bg-white px-4 py-3 text-[0.95rem] text-navy placeholder:text-navy/40 focus:border-cobalt focus:outline-none;
+  }
+}
+
+/* ---------- Marketing design system (scoped; the app keeps its light theme) ---------- */
+@layer components {
+  .mk {
+    --mk-bg: #07080f;
+    --mk-surface: #0f1220;
+    --mk-surface-2: #161a2e;
+    --mk-line: rgba(255, 255, 255, 0.1);
+    @apply min-h-screen bg-ink font-sans text-fg antialiased;
+  }
+  .mk a:focus-visible,
+  .mk button:focus-visible,
+  .mk input:focus-visible,
+  .mk textarea:focus-visible,
+  .mk summary:focus-visible {
+    outline: 3px solid #ffd60a;
+    outline-offset: 3px;
+  }
+  .mk-glow {
+    background: radial-gradient(60% 60% at 50% 40%, rgba(35, 56, 255, 0.35), rgba(35, 56, 255, 0) 70%);
+  }
+  .mk-grid {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent 75%);
+  }
+  .mk-field {
+    @apply w-full rounded-xl border border-white/10 bg-surface-2 px-4 py-3 text-[0.95rem] text-fg placeholder:text-fg-subtle focus:border-caption focus:outline-none;
+  }
+  .mk-prose h2 {
+    @apply mt-12 scroll-mt-28 font-display text-2xl font-bold tracking-tight text-fg;
+  }
+  .mk-prose p,
+  .mk-prose li {
+    @apply text-[1.02rem] leading-relaxed text-fg-muted;
+  }
+  .mk-prose p {
+    @apply mt-4;
+  }
+  .mk-prose ul {
+    @apply mt-4 list-disc space-y-2 pl-6;
+  }
+  .mk-prose a {
+    @apply text-caption underline underline-offset-4;
+  }
+}
+
+/* Overscroll / short pages on marketing routes stay dark */
+html:has(.mk) body {
+  background: #07080f;
+}

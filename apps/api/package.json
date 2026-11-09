@@ -1,0 +1,31 @@
+{
+  "name": "@clipforge/api",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@clipforge/core": "*",
+    "archiver": "^7.0.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.0.1",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "pino-http": "^10.4.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2"
+  }
+}

@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  UPLOAD
+  YOUTUBE
+}
+
+enum ProjectStatus {
+  PENDING_UPLOAD
+  QUEUED
+  DOWNLOADING
+  TRANSCRIBING
+  ANALYZING
+  RENDERING
+  READY
+  FAILED
+}
+
+enum ClipStatus {
+  READY
+  RENDERING
+}
+
+enum CreditReason {
+  PURCHASE
+  USAGE
+  REFUND
+  BONUS
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  credits      Int           @default(0)
+  createdAt    DateTime      @default(now())
+  projects     Project[]
+  sessions     Session[]
+  ledger       CreditEntry[]
+  payments     Payment[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Append-only credit ledger. `key` makes every entry idempotent (a retried job or webhook can't double-apply).
+model CreditEntry {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta     Int
+  reason    CreditReason
+  key       String       @unique
+  projectId String?
+  note      String?
+  createdAt DateTime     @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider  String        @default("razorpay")
+  orderId   String        @unique
+  paymentId String?       @unique
+  packId    String
+  credits   Int
+  amount    Int
+  currency  String        @default("INR")
+  status    PaymentStatus @default(CREATED)
+  createdAt DateTime      @default(now())
+  paidAt    DateTime?
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  sourceType      SourceType
+  sourceUrl       String?
+  sourceKey       String?
+  sourceDeletedAt DateTime?
+  uploadId        String?
+  status          ProjectStatus @default(PENDING_UPLOAD)
+  stage           String        @default("")
+  progress        Int           @default(0)
+  error           String?
+  durationSec     Float?
+  language        String?
+  captionStyle    String        @default("karaoke")
+  reframe         String        @default("auto")
+  /// Incremented on every user retry so each run is billed (and refunded) separately.
+  runs            Int           @default(1)
+  creditsCharged  Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  transcript      Transcript?
+  clips           Clip[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+  @@index([createdAt])
+}
+
+model Transcript {
+  projectId String  @id
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  text      String
+  words     Json
+  segments  Json
+  language  String?
+}
+
+model Clip {
+  id           String     @id @default(cuid())
+  projectId    String
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  index        Int
+  title        String
+  reason       String
+  score        Int
+  startSec     Float
+  endSec       Float
+  status       ClipStatus @default(READY)
+  /// Bumped on every re-render so object keys (and CDN/browser caches) change.
+  version      Int        @default(1)
+  captionStyle String     @default("karaoke")
+  reframe      String     @default("auto")
+  error        String?
+  videoKey     String
+  thumbKey     String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([projectId, index])
+}

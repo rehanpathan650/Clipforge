@@ -1,0 +1,13 @@
+# Caddy obtains and renews HTTPS certificates automatically.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	# flush_interval -1 stops Caddy buffering the Server-Sent Events progress stream
+	reverse_proxy api:4000 {
+		flush_interval -1
+	}
+}
