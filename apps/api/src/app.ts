@@ -66,7 +66,7 @@ export function buildApp() {
   app.get("/readyz", async (_req, res) => {
     try {
       await prisma.$queryRaw`SELECT 1`;
-      await (await getQueue(PIPELINE_QUEUE).client).ping();
+      await getQueue(PIPELINE_QUEUE).getJobCounts("waiting");
       res.json({ ok: true });
     } catch (err) {
       logger.error({ err }, "readiness check failed");
