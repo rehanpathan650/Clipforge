@@ -4,6 +4,10 @@ const nextConfig = {
   poweredByHeader: false,
   output: "standalone",
   outputFileTracingRoot: new URL("../../", import.meta.url).pathname,
+  async rewrites() {
+    if (!process.env.API_ORIGIN) return [];
+    return [{ source: "/api/:path*", destination: `${process.env.API_ORIGIN}/api/:path*` }];
+  },
   async headers() {
     return [
       {
